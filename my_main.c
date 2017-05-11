@@ -73,7 +73,25 @@ void first_pass() {
   //they must be extern variables
   extern int num_frames;
   extern char name[128]; 
-
+  int checkF,
+  int checkB,
+  int checkV;
+  int i;
+  for(i=0; i<lastop;i++){
+    if(!strcmp(op[i].opcode,FRAMES)){
+      num_frames = FRAMES;
+      checkF = 1;
+    }
+    if(!strcmp(op[i].opcode,BASENAME)){
+      name = BASENAME;
+      checkB = 1;
+    }
+    if(!strcmp(op[i].opcode,VARY)){
+      checkV = 1;
+    }
+  }
+  if(checkF && !checkV){
+    
   return;
 }
 
