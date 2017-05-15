@@ -90,8 +90,10 @@ void first_pass() {
       checkV = 1;
     }
   }
-  if(checkF && !checkV){
-    
+  if(!checkF && checkV){
+    printf("No frames found\n");
+  exit():
+  }
   return;
 }
 
