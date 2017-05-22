@@ -48,6 +48,7 @@
 #include "display.h"
 #include "draw.h"
 #include "stack.h"
+#include "symtab.h"
 
 /*======== void first_pass() ==========
   Inputs:   
@@ -73,27 +74,32 @@ void first_pass() {
   //they must be extern variables
   extern int num_frames;
   extern char name[128]; 
-  int checkF,
-  int checkB,
-  int checkV;
-  int i;
+  int checkF,checkB,checkV,i;
+  checkF = 0;
+  checkB = 0;
+  checkV = 0;
   for(i=0; i<lastop;i++){
-    if(!strcmp(op[i].opcode,FRAMES)){
-      num_frames = FRAMES;
+    if(op[i].opcode==FRAMES){
+      num_frames = op[i].op.frames.num_frames;
       checkF = 1;
     }
-    if(!strcmp(op[i].opcode,BASENAME)){
-      name = BASENAME;
+    if(op[i].opcode==BASENAME){
+      strcpy(name,op[i].op.basename.p->name);
       checkB = 1;
     }
-    if(!strcmp(op[i].opcode,VARY)){
+    if(op[i].opcode==VARY){
       checkV = 1;
     }
   }
-  if(!checkF && checkV){
+  if(checkF != 1 && checkV){
     printf("No frames found\n");
-  exit():
+    exit(0);
   }
+  if(checkF && !checkB){
+    strcpy(name,"base");
+    printf("Frames found, Base not found. Defaulted to base\n");
+  }
+  printf("got pass1");
   return;
 }
 
@@ -119,7 +125,39 @@ void first_pass() {
   jdyrlandweaver
   ====================*/
 struct vary_node ** second_pass() {
-  return NULL;
+  struct vary_node **knob;
+  struct vary_node *knobCur;
+  knob = (struct vary_node **)malloc(sizeof(struct vary_node*)*num_frames);
+  int i,j,start,end;
+  double value,start_val,end_val,discr;
+  value = 0.0;
+  for(i = 0;i<lastop;i++){
+    if(op[i].opcode==VARY){
+      start = op[i].op.vary.start_frame;
+      end = op[i].op.vary.end_frame;
+      start_val = op[i].op.vary.start_val;
+      end_val = op[i].op.vary.end_val;
+      value = start_val;
+      discr = (end_val-start_val)/(end-start);
+
+      if(end < start){
+	printf("end frame < start frame. Terminating");
+	exit(0);
+      }
+      
+      for(j=start;j<=end; j++){
+	knobCur = (struct vary_node *)malloc (sizeof(struct vary_node));
+	strcpy(knobCur->name,op[i].op.vary.p->name);
+	knobCur->value = value;
+	knobCur->next = knob[j];
+	knob[j] = knobCur;
+	value +=discr;
+      }
+    }
+  }
+	
+	
+  return knob;
 }
 
 
@@ -178,15 +216,16 @@ void print_knobs() {
 
   jdyrlandweaver
   ====================*/
+
 void my_main() {
 
-  int i;
+  int i, j, counter;
   struct matrix *tmp;
   struct stack *systems;
   screen t;
   color g;
   double step = 0.1;
-  double theta;
+  double theta,k_value;
   
   systems = new_stack();
   tmp = new_matrix(4, 1000);
@@ -195,9 +234,23 @@ void my_main() {
   g.green = 0;
   g.blue = 0;
 
-  for (i=0;i<lastop;i++) {
+  num_frames = 1;
+  struct vary_node * knob;
+  struct vary_node ** knobsCur = (struct vary_node **)malloc(sizeof(struct vary_node*)*num_frames);
+  first_pass();
+  if (num_frames > 1){
+    knobsCur = second_pass();
+  }
 
-    printf("%d: ",i);
+  for (counter = 0; counter < num_frames; counter++) {
+    if (num_frames > 1) {
+      for(knob = knobsCur[counter]; knob != NULL; knob = knob->next)
+	set_value(lookup_symbol(knob->name),knob->value);
+
+    }
+    for (i=0;i<lastop;i++) {
+      
+      printf("%d: ",i);
       switch (op[i].opcode)
 	{
 	case SPHERE:
@@ -292,10 +345,11 @@ void my_main() {
 	  if (op[i].op.move.p != NULL)
 	    {
 	      printf("\tknob: %s",op[i].op.move.p->name);
+	      k_value = op[i].op.move.p -> s.value;
 	    }
-	  tmp = make_translate( op[i].op.move.d[0],
-				op[i].op.move.d[1],
-				op[i].op.move.d[2]);
+	  tmp = make_translate( op[i].op.move.d[0] * k_value,
+				op[i].op.move.d[1] * k_value,
+				op[i].op.move.d[2] * k_value);
 	  matrix_mult(peek(systems), tmp);
 	  copy_matrix(tmp, peek(systems));
 	  tmp->lastcol = 0;
@@ -307,10 +361,11 @@ void my_main() {
 	  if (op[i].op.scale.p != NULL)
 	    {
 	      printf("\tknob: %s",op[i].op.scale.p->name);
+	      k_value = op[i].op.scale.p -> s.value;
 	    }
-	  tmp = make_scale( op[i].op.scale.d[0],
-			    op[i].op.scale.d[1],
-			    op[i].op.scale.d[2]);
+	  tmp = make_scale( op[i].op.scale.d[0] * k_value,
+			    op[i].op.scale.d[1] * k_value,
+			    op[i].op.scale.d[2] * k_value);
 	  matrix_mult(peek(systems), tmp);
 	  copy_matrix(tmp, peek(systems));
 	  tmp->lastcol = 0;
@@ -322,8 +377,9 @@ void my_main() {
 	  if (op[i].op.rotate.p != NULL)
 	    {
 	      printf("\tknob: %s",op[i].op.rotate.p->name);
+	      k_value = op[i].op.rotate.p -> s.value;
 	    }
-	  theta =  op[i].op.rotate.degrees * (M_PI / 180);
+	  theta =  op[i].op.rotate.degrees * (M_PI / 180) * k_value;
 	  if (op[i].op.rotate.axis == 0 )
 	    tmp = make_rotX( theta );
 	  else if (op[i].op.rotate.axis == 1 )
@@ -351,7 +407,25 @@ void my_main() {
 	  printf("Display");
 	  display(t);
 	  break;
-    }
+	case SET:
+	  set_value(lookup_symbol(op[i].op.set.p -> name), op[i].op.set.val);
+	  break;
+	case SETKNOBS:
+	  for (j = 0; j < lastsym; j++)
+	    set_value(&symtab[i],op[i].op.setknobs.value);
+	  break;
+	}
       printf("\n");
     }
+    if(num_frames>1){
+      char temp [128];
+      sprintf(temp ,"anim/%s%03d.png",name,counter);
+      save_extension(t,temp );
+      clear_screen(t);
+      free_stack(systems);
+      tmp ->lastcol = 0;
+      systems = new_stack();
+    }
+  }
+  make_animation(name);
 }
