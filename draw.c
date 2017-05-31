@@ -9,6 +9,26 @@
 #include "math.h"
 #include "gmath.h"
 
+double max(double a,double b,double c){
+  //a is max
+  if(a > b){
+    if(a > c){
+      return a;
+    }
+  }//b is max
+  if(b > a){
+    if(b>c){
+      return b;
+    }
+  }//c is max
+  if(c > a){
+    if(c > b){
+      return c;
+    }
+  }//all equal
+  return a;
+}
+
 void scanLineConversion(struct matrix *polygons,screen s, color c){
 }
   
@@ -33,7 +53,7 @@ void add_polygon( struct matrix *polygons,
 		  double x0, double y0, double z0, 
 		  double x1, double y1, double z1, 
 		  double x2, double y2, double z2 ) {
-
+  double zbuff_initval = (double)INT_MIN;
   add_point(polygons, x0, y0, z0);
   add_point(polygons, x1, y1, z1);
   add_point(polygons, x2, y2, z2);
@@ -66,11 +86,11 @@ void draw_polygons( struct matrix *polygons, screen s, color c ) {
 
     normal = calculate_normal(polygons, point);
 
-    zbuff_vala = polygons->m[2][point];
+    /*zbuff_vala = polygons->m[2][point];
     zbuff_valb = polygons->m[2][point+1];
     zbuff_valc = polygons->m[2][point+2];
-    
-    if(zbuff_vala > zbuff_initval && normal[2]>0){
+    */
+    /*if(zbuff_vala > zbuff_initval && normal[2]>0){
       zbuff_initval = zbuff_vala;
         
       draw_line( polygons->m[0][point],
@@ -132,25 +152,30 @@ void draw_polygons( struct matrix *polygons, screen s, color c ) {
     }
     else{
 
-    }
-    /*      if ( normal[2] > 0 ) {
-    
-	    draw_line( polygons->m[0][point],
-	    polygons->m[1][point],
-	    polygons->m[0][point+1],
-	    polygons->m[1][point+1],
-	    s, c);
-	    draw_line( polygons->m[0][point+2],
-	    polygons->m[1][point+2],
-	    polygons->m[0][point+1],
-	    polygons->m[1][point+1],
-	    s, c);	       
-	    draw_line( polygons->m[0][point],
-	    polygons->m[1][point],
-	    polygons->m[0][point+2],
-	    polygons->m[1][point+2],
-	    s, c);
-	    }*/
+    }*/      if ( normal[2] > 0 ) {
+      /*  if(zbuff_vala > zbuff_initval ||
+	 zbuff_valb > zbuff_initval ||
+	 zbuff_valc > zbuff_initval){
+	zbuff_initval = max(zbuff_vala,zbuff_valb,zbuff_valc);
+	
+      */
+	draw_line( polygons->m[0][point],
+		   polygons->m[1][point],
+		   polygons->m[0][point+1],
+		   polygons->m[1][point+1],
+		   s, c);
+	draw_line( polygons->m[0][point+2],
+		   polygons->m[1][point+2],
+		   polygons->m[0][point+1],
+		   polygons->m[1][point+1],
+		   s, c);	       
+	draw_line( polygons->m[0][point],
+		   polygons->m[1][point],
+		   polygons->m[0][point+2],
+		   polygons->m[1][point+2],
+		   s, c);
+      }
+    //  }
   }
 }
 
@@ -173,6 +198,7 @@ void add_box( struct matrix * polygons,
 	      double width, double height, double depth ) {
 
   double x1, y1, z1;
+  
   x1 = x+width;
   y1 = y-height;
   z1 = z-depth;
