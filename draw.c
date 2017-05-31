@@ -10,6 +10,7 @@
 #include "gmath.h"
 
 void scanLineConversion(struct matrix *polygons,screen s, color c){
+}
   
 
 /*======== void add_polygon() ==========
@@ -55,7 +56,7 @@ void draw_polygons( struct matrix *polygons, screen s, color c ) {
  
   int point;
   double *normal;
-  double zbuff_initVal;
+  double zbuff_initval;
   double zbuff_vala;
   double zbuff_valb;
   double zbuff_valc;
