@@ -244,8 +244,9 @@ void my_main() {
 
   for (counter = 0; counter < num_frames; counter++) {
     if (num_frames > 1) {
-      for(knob = knobsCur[counter]; knob != NULL; knob = knob->next)
+      for(knob = knobsCur[counter]; knob != NULL; knob = knob->next){
 	set_value(lookup_symbol(knob->name),knob->value);
+      }
 
     }
     for (i=0;i<lastop;i++) {
